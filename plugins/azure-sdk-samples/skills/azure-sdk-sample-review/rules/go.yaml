@@ -1,0 +1,76 @@
+# Go-specific deterministic rules for Azure SDK samples
+
+rules:
+  - id: GO-001
+    severity: high
+    title: Use azidentity.NewDefaultAzureCredential
+    description: "Go samples must use azidentity for authentication"
+    detect:
+      require:
+        - "azidentity"
+        - "NewDefaultAzureCredential"
+      anti_patterns:
+        - regex: "azblob\\.NewSharedKeyCredential"
+        - regex: "ConnectionString"
+    fix: "Use cred, err := azidentity.NewDefaultAzureCredential(nil)"
+
+  - id: GO-002
+    severity: high
+    title: Handle all errors
+    description: "Every error return must be checked — no ignored errors"
+    detect:
+      anti_patterns:
+        - regex: "[^_],\\s*_\\s*:?=\\s*\\w+\\."
+          description: "Discarded error return value"
+        - regex: "\\w+,\\s*_\\s*=\\s*\\w+\\("
+      require:
+        - "if err != nil"
+    fix: "Check every error: if err != nil { return fmt.Errorf(...) }"
+
+  - id: GO-003
+    severity: medium
+    title: Use defer for cleanup
+    description: "Resources must be cleaned up with defer"
+    detect:
+      prefer:
+        - "defer"
+      when_present_any: ["http.Response", "os.File", "sql.DB", "io.ReadCloser"]
+    fix: "Add defer resp.Body.Close() or defer file.Close() immediately after creation"
+
+  - id: GO-004
+    severity: medium
+    title: Use context.Context
+    description: "SDK operations should accept and propagate context"
+    detect:
+      require:
+        - "context.Context"
+      anti_patterns:
+        - "context.TODO()"
+        - "context.Background()"
+      prefer:
+        - "ctx context.Context"
+    note: "context.Background() acceptable in main() — flag in library code"
+    fix: "Accept context as first parameter; propagate to SDK calls"
+
+  - id: GO-005
+    severity: medium
+    title: Use go.sum for reproducible builds
+    description: "go.sum must be committed for dependency verification"
+    detect:
+      require_file: "go.sum"
+    fix: "Run go mod tidy and commit go.sum"
+
+  - id: GO-006
+    severity: low
+    title: Use structured logging (slog)
+    description: "Go 1.21+ samples should use log/slog over fmt.Println for observability"
+    detect:
+      anti_patterns:
+        - regex: "fmt\\.Print(ln|f)?\\("
+        - regex: "log\\.Print(ln|f)?\\("
+      prefer:
+        - "slog.Info"
+        - "slog.Error"
+        - "slog.Debug"
+    note: "Simple examples may use fmt — flag for larger samples"
+    fix: "Use log/slog package: slog.Info(\"operation complete\", \"key\", value)"

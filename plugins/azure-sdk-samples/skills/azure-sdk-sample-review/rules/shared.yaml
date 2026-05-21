@@ -1,0 +1,223 @@
+# Shared deterministic rules for Azure SDK sample review
+# These rules produce pass/fail findings without LLM judgment.
+# Severity: blocker (auto-reject), high, medium, low
+
+version_source:
+  description: "SDK package versions are maintained externally — do NOT duplicate here"
+  repo: MicrosoftDocs/azure-dev-docs-pr
+  path_template: "articles/includes/{language}-all.md"
+  languages:
+    typescript: javascript-all.md
+    python: python-all.md
+    dotnet: dotnet-all.md
+    go: go-all.md
+    java: java-all.md
+    rust: rust-all.md
+
+rules:
+  # --- CREDENTIALS ---
+
+  - id: CRED-001
+    severity: blocker
+    title: No hardcoded credentials
+    description: "Secrets, API keys, connection strings, or tokens must not appear in code"
+    detect:
+      patterns:
+        - "AccountKey="
+        - "SharedAccessSignature="
+        - "Endpoint=sb://"
+        - "DefaultEndpointsProtocol="
+        - regex: "(?i)(api[_-]?key|secret|password|token)\\s*=\\s*[\"'][^\"']{8,}"
+        - regex: "(?i)[\"'][A-Za-z0-9+/]{40,}={1,2}[\"']"
+      scope: "source files only — skip lockfiles, .lock, package-lock.json, yarn.lock"
+    exceptions:
+      - "// Example — do not use in production"
+      - "# Placeholder"
+      - "emulator connection string"
+      - "Azure Cosmos DB emulator key"
+    fix: "Use DefaultAzureCredential or environment variables with .env.sample"
+
+  - id: CRED-002
+    severity: high
+    title: Prefer identity-based authentication
+    description: "Samples should use DefaultAzureCredential over connection strings or keys where Entra ID is supported"
+    detect:
+      anti_patterns:
+        - "from_connection_string"
+        - "fromConnectionString"
+        - "StorageSharedKeyCredential"
+        - "credential=cosmos_key"
+        - regex: "(?i)new\\s+CosmosClient\\(.*key[:=]"
+    require:
+      any_of:
+        - "DefaultAzureCredential"
+        - "ManagedIdentityCredential"
+        - "ChainedTokenCredential"
+        - "ClientSecretCredential"
+        - "AzureCliCredential"
+        - "AzureKeyCredential"
+    exceptions:
+      - "Azure Cosmos DB emulator"
+      - "local development only"
+      - "Services requiring key auth (Search, Maps, some AI services)"
+    note: "AzureKeyCredential is legitimate for services that do not support Entra ID (e.g., AI Search, Communication Services, Maps). Do NOT flag it as an anti-pattern."
+    fix: "Replace connection string/key auth with DefaultAzureCredential where Entra ID is supported"
+
+  - id: CRED-003
+    severity: blocker
+    title: No .env file committed
+    description: "Environment files with secrets must not be in source control"
+    detect:
+      file_patterns:
+        - ".env"
+        - ".env.local"
+        - ".env.production"
+    verify: "git ls-files .env"
+    fix: "Add .env to .gitignore; provide .env.sample with placeholders"
+
+  # --- ERROR HANDLING ---
+
+  - id: ERR-001
+    severity: high
+    title: Error handling required
+    description: "All SDK operations must have error handling appropriate to the language"
+    detect:
+      language_map:
+        python:
+          require: "try:"
+          anti_pattern: "except:"
+          anti_pattern_reason: "Bare except catches SystemExit/KeyboardInterrupt"
+        typescript:
+          require_any: ["try {", ".catch("]
+        dotnet:
+          require: "try"
+        go:
+          require: "if err != nil"
+        java:
+          require_any: ["try {", "throws"]
+        rust:
+          require_any: ["?", "match", ".unwrap_or"]
+          anti_pattern: ".unwrap()"
+          anti_pattern_reason: "unwrap() panics on error — use ? or expect()"
+    fix: "Add language-appropriate error handling around SDK calls"
+
+  - id: ERR-002
+    severity: medium
+    title: Resource cleanup required
+    description: "SDK clients and connections must be properly closed/disposed"
+    detect:
+      language_map:
+        python:
+          require_any: ["async with", "with ", "finally:"]
+        typescript:
+          require_any: ["finally {", "Symbol.asyncDispose", "[Symbol.dispose]", ".close()"]
+        dotnet:
+          require_any: ["using ", "await using", "finally", "Dispose()"]
+        go:
+          require: "defer"
+        java:
+          require_any: ["try (", "finally {", ".close()"]
+        rust:
+          note: "Rust Drop trait handles cleanup automatically — no explicit check needed"
+    fix: "Use context managers, using statements, defer, or try-with-resources"
+
+  # --- DEPENDENCIES ---
+
+  - id: DEP-001
+    severity: blocker
+    title: Track 2 SDK packages required
+    description: "Samples must use current-generation (Track 2) Azure SDK packages"
+    detect:
+      check: "versions/track1-packages.yaml"
+    deduplication: "If a package matches both DEP-001 and DEP-002, report only DEP-001 (blocker takes precedence)"
+    fix: "Migrate to Track 2 equivalent — see azure-dev-docs-pr includes for current packages"
+
+  - id: DEP-002
+    severity: high
+    title: No deprecated packages
+    description: "Retired or deprecated packages must be replaced"
+    detect:
+      check: "versions/deprecated-packages.yaml"
+    deduplication: "If already reported under DEP-001 (Track 1), do NOT also report DEP-002"
+    fix: "See replacement listed in deprecated-packages.yaml"
+
+  - id: DEP-003
+    severity: high
+    title: No critical/high CVEs
+    description: "Dependencies must not have known critical or high severity vulnerabilities"
+    detect:
+      commands:
+        typescript: "npm audit --audit-level=high"
+        python: "pip audit"
+        dotnet: "dotnet list package --vulnerable"
+        go: "govulncheck ./..."
+        java: "mvn dependency-check:check"
+        rust: "cargo audit"
+    fix: "Update vulnerable dependencies or find alternatives"
+
+  # --- PROJECT STRUCTURE ---
+
+  - id: PROJ-001
+    severity: high
+    title: README.md required
+    description: "Every sample must have a README with prerequisites, setup, and expected output"
+    detect:
+      require_file: "README.md"
+      require_sections:
+        - regex: "(?i)## (Prerequisites|Requirements)"
+        - regex: "(?i)## (Setup|Getting Started|Installation)"
+        - regex: "(?i)## (Run|Usage|Expected Output)"
+    fix: "Add README.md with Prerequisites, Setup, and Run sections"
+
+  - id: PROJ-002
+    severity: high
+    title: LICENSE file required
+    description: "MIT LICENSE must be present at the repo or sample level"
+    detect:
+      require_file_any: ["LICENSE", "LICENSE.md", "../LICENSE"]
+      require_content: "MIT"
+    fix: "Add MIT LICENSE file"
+
+  - id: PROJ-003
+    severity: medium
+    title: .gitignore must protect secrets and artifacts
+    description: "Git must ignore environment files, build output, and dependencies"
+    detect:
+      require_file: ".gitignore"
+      require_entries:
+        - ".env"
+        - regex: "(?i)(node_modules|__pycache__|bin/|obj/|target/|vendor/)"
+    fix: "Add .gitignore with .env, build artifacts, and dependency directories"
+
+  - id: PROJ-004
+    severity: medium
+    title: Environment variable template required
+    description: "Provide .env.sample or similar showing required env vars with placeholder values"
+    detect:
+      require_file_any: [".env.sample", ".env.example", ".env.template"]
+    fix: "Create .env.sample with placeholder values (never real credentials)"
+
+  # --- SDK PATTERNS ---
+
+  - id: SDK-001
+    severity: medium
+    title: Credential instance should be cached
+    description: "Create one credential instance and reuse across multiple clients"
+    detect:
+      description: "Look for multiple DefaultAzureCredential instantiations in the same file"
+      anti_pattern_hint: "Count occurrences of DefaultAzureCredential() or new DefaultAzureCredential — more than one is a finding"
+    fix: "Create credential once, pass to all client constructors"
+
+  - id: SDK-002
+    severity: low
+    title: Environment variables validated at startup
+    description: "Required config should be validated early with descriptive error messages"
+    detect:
+      check_for: "Environment variable access without nearby validation"
+      anti_patterns:
+        - regex: "(?i)process\\.env\\.[A-Z_]+\\s*(\\|\\||!)"
+        - regex: "(?i)os\\.environ\\.get\\(.*,\\s*None\\)"
+      prefer:
+        - regex: "(?i)(if not|throw|raise|panic|fatal).*env"
+    note: "Reading env vars (process.env.X, os.environ[X]) is correct — the issue is when they are accessed without validation/fallback"
+    fix: "Validate all required environment variables at startup with clear error messages"

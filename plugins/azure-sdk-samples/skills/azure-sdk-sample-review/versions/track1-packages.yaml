@@ -1,0 +1,49 @@
+# Track 1 (legacy) Azure SDK packages
+# These trigger DEP-001 blocker findings — samples MUST use Track 2.
+# Track 2 packages use consistent naming: @azure/* (JS), azure-* (Python),
+# Azure.* (dotnet), github.com/Azure/azure-sdk-for-go/sdk/* (Go), com.azure:* (Java)
+
+track1_indicators:
+  typescript:
+    package_prefixes:
+      - "azure-"           # Old naming (not @azure/ scoped)
+      - "ms-rest-azure"
+      - "azure-arm-"
+    import_patterns:
+      - regex: "require\\(['\"]azure-"
+      - regex: "from ['\"]azure-(?!identity)"
+
+  python:
+    package_prefixes:
+      - "msrestazure"
+      - "azure-common"
+    import_patterns:
+      - regex: "from msrestazure"
+      - regex: "from azure\\.common"
+    note: "azure-mgmt-* packages are ambiguous — some are Track 2. Do NOT auto-reject. Instead check the package version against azure-dev-docs-pr includes to determine Track status."
+
+  dotnet:
+    package_prefixes:
+      - "Microsoft.Azure."
+      - "WindowsAzure."
+    namespace_patterns:
+      - regex: "using Microsoft\\.Azure\\.(Storage|KeyVault|ServiceBus|EventHubs)"
+      - regex: "using WindowsAzure"
+    note: "Track 2 uses Azure.* namespace (e.g., Azure.Storage.Blobs)"
+
+  go:
+    package_prefixes:
+      - "github.com/Azure/azure-sdk-for-go/services/"
+    import_patterns:
+      - regex: "\"github\\.com/Azure/azure-sdk-for-go/services/"
+    note: "Track 2 uses github.com/Azure/azure-sdk-for-go/sdk/*"
+
+  java:
+    package_prefixes:
+      - "com.microsoft.azure:"
+    import_patterns:
+      - regex: "import com\\.microsoft\\.azure\\."
+    note: "Track 2 uses com.azure:* artifacts"
+
+  rust:
+    note: "No Track 1 Rust SDK exists — all azure_* crates are current"

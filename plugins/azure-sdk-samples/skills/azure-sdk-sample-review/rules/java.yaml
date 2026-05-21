@@ -1,0 +1,80 @@
+# Java-specific deterministic rules for Azure SDK samples
+
+rules:
+  - id: JAVA-001
+    severity: high
+    title: Use com.azure (Track 2) packages
+    description: "All Azure SDK imports must be from com.azure namespace"
+    detect:
+      anti_patterns:
+        - "com.microsoft.azure"
+        - "import com.microsoft.azure."
+      require:
+        - "com.azure"
+    fix: "Migrate to com.azure:* artifacts (Track 2)"
+
+  - id: JAVA-002
+    severity: high
+    title: Use DefaultAzureCredential from azure-identity
+    description: "Authentication must use azure-identity package"
+    detect:
+      require:
+        - "DefaultAzureCredentialBuilder"
+      anti_patterns:
+        - regex: "new\\s+AzureKeyCredential\\("
+        - "connectionString"
+    exceptions:
+      - "Search service requires AzureKeyCredential"
+    fix: "Use new DefaultAzureCredentialBuilder().build()"
+
+  - id: JAVA-003
+    severity: medium
+    title: Use try-with-resources for client cleanup
+    description: "Closeable SDK clients must use try-with-resources"
+    detect:
+      prefer:
+        - "try ("
+      anti_patterns:
+        - regex: "\\w+Client\\s+\\w+\\s*=.*\\.build(Client|AsyncClient)\\(\\);$"
+          unless: "try ("
+    fix: "Use try (var client = builder.buildClient()) { ... }"
+
+  - id: JAVA-004
+    severity: medium
+    title: Configure HttpClient and retry for production readiness
+    description: "Client builders should set retry policy and HTTP client"
+    detect:
+      when_present: ".buildClient()"
+      prefer:
+        - "retryPolicy"
+        - "httpClient"
+        - "RetryPolicy"
+    fix: "Add .retryPolicy(new RetryPolicy()) and .httpClient(HttpClient.createDefault())"
+
+  - id: JAVA-005
+    severity: high
+    title: Use Spring Cloud Azure for Spring Boot apps
+    description: "Spring Boot samples should use spring-cloud-azure-starter-* autoconfiguration"
+    detect:
+      when_present: "@SpringBootApplication"
+      prefer:
+        - "spring-cloud-azure"
+        - "com.azure.spring"
+      anti_patterns:
+        - regex: "@Bean.*new\\s+\\w+ClientBuilder\\("
+          description: "Manual client construction in Spring — use autoconfiguration"
+    fix: "Add spring-cloud-azure-starter-* dependency; configure via spring.cloud.azure.* properties — no @Enable annotations needed (removed in Spring Cloud Azure 4.x)"
+
+  - id: JAVA-006
+    severity: high
+    title: Use openai-java SDK (not azure-ai-openai)
+    description: "com.azure:azure-ai-openai is being sunset — use com.openai:openai-java with Azure config"
+    detect:
+      anti_patterns:
+        - "com.azure:azure-ai-openai"
+        - "import com.azure.ai.openai"
+      prefer:
+        - "com.openai"
+        - "import com.openai"
+    note: "Microsoft's azure-ai-openai README states it will not receive updates in its current form. Migrate to openai-java."
+    fix: "Use com.openai:openai-java with Azure configuration and AzureOpenAIServiceVersion"

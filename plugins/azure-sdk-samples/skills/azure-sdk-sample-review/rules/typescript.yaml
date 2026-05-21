@@ -1,0 +1,94 @@
+# TypeScript-specific deterministic rules for Azure SDK samples
+
+rules:
+  - id: TS-001
+    severity: high
+    title: ESM configuration required
+    description: "TypeScript samples must use ES modules"
+    detect:
+      require_in_files:
+        - file: "package.json"
+          patterns:
+            - '"type": "module"'
+        - file: "tsconfig.json"
+          patterns:
+            - regex: '(?i)"module":\\s*"(nodenext|esnext|es2022)"'
+            - regex: '(?i)"moduleResolution":\\s*"(nodenext|bundler)"'
+    fix: 'Set "type": "module" in package.json, use moduleResolution: "nodenext" in tsconfig'
+
+  - id: TS-002
+    severity: high
+    title: Use native --env-file (not dotenv)
+    description: "Node.js 20+ has built-in --env-file flag — dotenv is unnecessary"
+    detect:
+      anti_patterns:
+        - "require('dotenv')"
+        - 'from "dotenv"'
+        - "from 'dotenv'"
+        - "import dotenv"
+        - "dotenv.config()"
+        - "'dotenv/config'"
+        - '"dotenv/config"'
+      prefer:
+        - "node --env-file"
+    fix: "Remove dotenv; use node --env-file=.env in package.json scripts"
+
+  - id: TS-003
+    severity: medium
+    title: Strict TypeScript enabled
+    description: "tsconfig.json must have strict: true"
+    detect:
+      require_in_file:
+        file: "tsconfig.json"
+        patterns:
+          - '"strict": true'
+    fix: 'Add "strict": true to tsconfig.json compilerOptions'
+
+  - id: TS-004
+    severity: medium
+    title: Package-lock committed
+    description: "package-lock.json must be in source control for reproducible installs"
+    detect:
+      require_file: "package-lock.json"
+      anti_file_in_gitignore: "package-lock.json"
+    fix: "Remove package-lock.json from .gitignore; commit it"
+
+  - id: TS-005
+    severity: high
+    title: Use openai SDK with AzureOpenAI (not @azure/openai v1)
+    description: "The @azure/openai v1 package is retired — use the openai npm package with AzureOpenAI class directly"
+    detect:
+      anti_patterns:
+        - 'from "@azure/openai"'
+        - "from '@azure/openai'"
+        - "require('@azure/openai')"
+        - 'require("@azure/openai")'
+      prefer:
+        - "AzureOpenAI"
+        - 'from "openai"'
+    note: "@azure/openai v2+ is a thin re-export wrapper — prefer importing from 'openai' directly for clarity"
+    fix: "Install openai package; use new AzureOpenAI({ endpoint, apiVersion })"
+
+  - id: TS-006
+    severity: medium
+    title: Pagination handled correctly
+    description: "Use for-await-of for paginated Azure SDK responses"
+    detect:
+      prefer:
+        - "for await"
+        - "byPage()"
+      anti_patterns:
+        - regex: "\\.list\\w*\\(\\)\\s*;"
+          description: "Paginated results assigned but not iterated"
+    fix: "Use `for await (const item of client.listItems())` pattern"
+
+  - id: TS-007
+    severity: low
+    title: Single package manager
+    description: "Use only one package manager — do not mix npm, yarn, and pnpm"
+    detect:
+      conflict_files:
+        - ["package-lock.json", "yarn.lock"]
+        - ["package-lock.json", "pnpm-lock.yaml"]
+        - ["yarn.lock", "pnpm-lock.yaml"]
+    fix: "Remove extra lock files; use only one package manager"

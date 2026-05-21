@@ -1,0 +1,14 @@
+{
+  "name": "azure-sdk-samples",
+  "description": "Reviews Azure SDK code samples for best practices, credentials, error handling, and documentation compliance. Supports Python, TypeScript, .NET, Java, Go, and Rust.",
+  "version": "1.0.0",
+  "skills": [
+    "./skills/azure-sdk-sample-review",
+    "./skills/azure-sdk-python-sample-review",
+    "./skills/azure-sdk-typescript-sample-review",
+    "./skills/azure-sdk-dotnet-sample-review",
+    "./skills/azure-sdk-java-sample-review",
+    "./skills/azure-sdk-go-sample-review",
+    "./skills/azure-sdk-rust-sample-review"
+  ]
+}
