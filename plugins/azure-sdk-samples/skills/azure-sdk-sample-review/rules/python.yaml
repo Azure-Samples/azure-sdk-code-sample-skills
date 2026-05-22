@@ -1,0 +1,81 @@
+# Python-specific deterministic rules for Azure SDK samples
+
+rules:
+  - id: PY-001
+    severity: high
+    title: Use async context managers for SDK clients
+    description: "Async Azure SDK clients must be used with 'async with' for proper cleanup"
+    detect:
+      description: "Look for async SDK client instantiation without 'async with' wrapping"
+      anti_pattern_hint: "Client assigned to variable in async function without async with block"
+      prefer:
+        - "async with"
+    note: "Sync clients also benefit from 'with' context managers. The key issue is async clients MUST use async with to avoid resource leaks."
+    fix: "Use `async with ClientClass(...) as client:` pattern"
+
+  - id: PY-002
+    severity: high
+    title: Use typed exceptions (not bare except)
+    description: "Never use bare except: — catch specific Azure SDK exceptions"
+    detect:
+      anti_patterns:
+        - regex: "except\\s*:"
+          severity: high
+          reason: "Bare except catches SystemExit, KeyboardInterrupt — always wrong"
+        - regex: "except\\s+Exception\\s*:"
+          severity: medium
+          reason: "Overly broad — use specific azure.core.exceptions types"
+      prefer:
+        - "except HttpResponseError"
+        - "except ResourceNotFoundError"
+        - "except ClientAuthenticationError"
+        - "from azure.core.exceptions import"
+    fix: "Import and catch specific exceptions from azure.core.exceptions"
+
+  - id: PY-003
+    severity: medium
+    title: Type hints required
+    description: "Functions should have parameter and return type annotations"
+    detect:
+      anti_patterns:
+        - regex: "def\\s+\\w+\\([^)]*\\)\\s*:"
+          unless: "->"
+    fix: "Add type hints: def upload_blob(data: bytes, name: str) -> None:"
+
+  - id: PY-004
+    severity: medium
+    title: Use async imports from .aio submodules
+    description: "Async clients live in .aio submodules — do not mix sync/async"
+    detect:
+      conflict_patterns:
+        - pattern: "async def"
+          requires: ".aio import"
+          message: "Async function found but no .aio import — using sync client in async context"
+    fix: "Import from azure.*.aio for async usage (e.g., from azure.storage.blob.aio import BlobServiceClient)"
+
+  - id: PY-005
+    severity: high
+    title: Use openai SDK with AzureOpenAI class
+    description: "Do not use api_type='azure' pattern — use the AzureOpenAI class directly"
+    detect:
+      anti_patterns:
+        - "api_type"
+        - "openai.api_type"
+        - regex: "api_type\\s*=\\s*['\"]azure['\"]"
+      prefer:
+        - "AzureOpenAI("
+        - "AsyncAzureOpenAI("
+    fix: "Use `from openai import AzureOpenAI` with endpoint and api_version params"
+
+  - id: PY-006
+    severity: low
+    title: Use logging over print
+    description: "Samples should demonstrate proper logging patterns"
+    detect:
+      anti_patterns:
+        - regex: "^\\s*print\\("
+      prefer:
+        - "import logging"
+        - "logger = logging.getLogger"
+    note: "Simple demos may use print — flag for larger samples only"
+    fix: "Use logging module: logger = logging.getLogger(__name__)"

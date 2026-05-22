@@ -1,0 +1,79 @@
+# .NET-specific deterministic rules for Azure SDK samples
+
+rules:
+  - id: NET-001
+    severity: high
+    title: Use Azure.Identity (not Microsoft.Azure)
+    description: "Authentication must use Azure.Identity package (Track 2)"
+    detect:
+      anti_patterns:
+        - "Microsoft.Azure.Services.AppAuthentication"
+        - "Microsoft.IdentityModel"
+        - "AzureServiceTokenProvider"
+      require:
+        - "Azure.Identity"
+        - "DefaultAzureCredential"
+    fix: "Install Azure.Identity NuGet; use new DefaultAzureCredential()"
+
+  - id: NET-002
+    severity: medium
+    title: Use await using for async disposables
+    description: "Azure SDK clients implementing IAsyncDisposable should use await using"
+    detect:
+      prefer:
+        - "await using"
+      anti_patterns:
+        - regex: "using\\s+var\\s+\\w+\\s*=\\s*new\\s+(ServiceBusClient|ServiceBusProcessor)"
+    fix: "Use `await using var client = new ServiceBusClient(...)` for async-disposable clients"
+
+  - id: NET-003
+    severity: medium
+    title: Configure CosmosClientOptions
+    description: "Cosmos DB client should have serialization and connection mode configured"
+    detect:
+      when_present: "CosmosClient"
+      prefer:
+        - "CosmosClientOptions"
+        - "ConnectionMode"
+        - "SerializerOptions"
+    fix: "Pass CosmosClientOptions with connection mode and serializer config"
+
+  - id: NET-004
+    severity: high
+    title: Use Aspire or DI for client lifetime management
+    description: "In ASP.NET apps, register Azure SDK clients via DI (AddAzureClients)"
+    detect:
+      when_present: "builder.Services"
+      prefer:
+        - "AddAzureClients"
+        - "builder.AddAzureBlobClient"
+        - "builder.AddAzureKeyVaultClient"
+      anti_patterns:
+        - regex: "services\\.AddSingleton.*new\\s+(BlobServiceClient|SecretClient|ServiceBusClient)"
+    fix: "Use Microsoft.Extensions.Azure: builder.Services.AddAzureClients(cfg => ...)"
+
+  - id: NET-005
+    severity: high
+    title: Use Azure.AI.OpenAI v2+ (not v1.x legacy API)
+    description: "Azure.AI.OpenAI v1.x is deprecated — upgrade to v2.x which wraps the OpenAI .NET library"
+    detect:
+      anti_patterns:
+        - "OpenAIClient"
+        - "CompletionsOptions"
+        - "ChatCompletionsOptions"
+      prefer:
+        - "AzureOpenAIClient"
+        - "using Azure.AI.OpenAI"
+    note: "The Azure.AI.OpenAI PACKAGE is NOT retired — v2.x is current and required. Only the v1.x API types (OpenAIClient, CompletionsOptions) are deprecated."
+    fix: "Upgrade Azure.AI.OpenAI to v2.x; replace OpenAIClient with AzureOpenAIClient"
+
+  - id: NET-006
+    severity: low
+    title: Use file-scoped namespaces
+    description: "C# 10+ samples should use file-scoped namespace declarations"
+    detect:
+      anti_patterns:
+        - regex: "namespace\\s+\\w[\\w.]*\\s*\\{"
+      prefer:
+        - regex: "namespace\\s+\\w[\\w.]*;"
+    fix: "Use `namespace MyApp.Services;` (no braces)"

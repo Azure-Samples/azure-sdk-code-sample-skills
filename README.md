@@ -1,57 +1,72 @@
-# Project Name
+# Azure SDK Code Sample Review Skills
 
-(short, 1-3 sentenced, description of the project)
+A Copilot CLI / VS Code Copilot Chat plugin that reviews Azure SDK code samples for best practices, credential handling, error patterns, and documentation compliance.
 
-## Features
+## Supported Languages
 
-This project framework provides the following features:
+| Language | Skill |
+|----------|-------|
+| Auto-detect | `azure-sdk-sample-review` |
+| Python | `azure-sdk-python-sample-review` |
+| TypeScript | `azure-sdk-typescript-sample-review` |
+| .NET | `azure-sdk-dotnet-sample-review` |
+| Java | `azure-sdk-java-sample-review` |
+| Go | `azure-sdk-go-sample-review` |
+| Rust | `azure-sdk-rust-sample-review` |
 
-* Feature 1
-* Feature 2
-* ...
+## Usage
 
-## Getting Started
+### Register as a Plugin (consumer repo)
 
-### Prerequisites
+Add to your repo's `.github/copilot/settings.json`:
 
-(ideally very short, if any)
+```json
+{
+  "extraKnownMarketplaces": {
+    "azure-sdk-code-sample-skills": {
+      "source": {
+        "source": "github",
+        "repo": "Azure-Samples/azure-sdk-code-sample-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "azure-sdk-samples@azure-sdk-code-sample-skills": true
+  }
+}
+```
 
-- OS
-- Library version
-- ...
+### Copilot CLI
 
-### Installation
+Skills are available immediately once the plugin is registered. Use natural language:
 
-(ideally very short)
+```
+copilot "review this Python Azure SDK sample for best practices"
+```
 
-- npm install [package name]
-- mvn install
-- ...
+### VS Code Copilot Chat
 
-### Quickstart
-(Add steps to get up and running quickly)
+After registering, VS Code will prompt to enable the plugin on first use.
 
-1. git clone [repository clone url]
-2. cd [repository name]
-3. ...
+## Plugin Structure
 
+```
+plugins/azure-sdk-samples/
+├── .github/plugin/plugin.json   ← manifest
+└── skills/
+    ├── azure-sdk-sample-review/       ← orchestrator (auto-detect language)
+    ├── azure-sdk-python-sample-review/
+    ├── azure-sdk-typescript-sample-review/
+    ├── azure-sdk-dotnet-sample-review/
+    ├── azure-sdk-java-sample-review/
+    ├── azure-sdk-go-sample-review/
+    └── azure-sdk-rust-sample-review/
+```
 
-## Demo
+## Contributing
 
-A demo app is included to show how to use the project.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-To run the demo, follow these steps:
+## License
 
-(Add steps to start up the demo)
-
-1.
-2.
-3.
-
-## Resources
-
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+See [LICENSE.md](LICENSE.md).

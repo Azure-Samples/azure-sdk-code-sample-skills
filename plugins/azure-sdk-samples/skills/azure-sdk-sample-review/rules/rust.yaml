@@ -1,0 +1,82 @@
+# Rust-specific deterministic rules for Azure SDK samples
+
+rules:
+  - id: RS-001
+    severity: high
+    title: Use azure_identity crate
+    description: "Authentication must use azure_identity::DefaultAzureCredential"
+    detect:
+      require:
+        - "azure_identity"
+        - "DefaultAzureCredential"
+      anti_patterns:
+        - regex: "access_key|account_key|connection_string"
+    fix: "Add azure_identity to Cargo.toml; use DefaultAzureCredential::new()"
+
+  - id: RS-002
+    severity: high
+    title: Use Result and ? operator (not unwrap)
+    description: "SDK operations must propagate errors — never panic on failure"
+    detect:
+      anti_patterns:
+        - ".unwrap()"
+        - ".expect("
+      prefer:
+        - "?"
+        - "anyhow::Result"
+        - "azure_core::Result"
+    exceptions:
+      - "main() function with #[tokio::main]"
+      - "test functions"
+    fix: "Replace .unwrap() with ? and return Result<T, Box<dyn Error>>"
+
+  - id: RS-003
+    severity: medium
+    title: Use tokio async runtime
+    description: "Async Azure SDK for Rust requires tokio runtime"
+    detect:
+      require_any:
+        - "#[tokio::main]"
+        - "tokio::runtime"
+      when_present: "async fn"
+    fix: "Add #[tokio::main] to main or construct tokio runtime explicitly"
+
+  - id: RS-004
+    severity: medium
+    title: Pin azure SDK crate versions
+    description: "Cargo.toml should pin azure_* crate versions for reproducibility"
+    detect:
+      anti_patterns:
+        - regex: 'azure_\\w+\\s*=\\s*"\\*"'
+        - regex: 'azure_\\w+\\s*=\\s*">=?'
+      prefer:
+        - regex: 'azure_\\w+\\s*=\\s*"\\d+\\.'
+    fix: "Pin exact major.minor version: azure_storage_blobs = \"0.21\""
+
+  - id: RS-005
+    severity: low
+    title: Use tracing over println
+    description: "Production samples should use tracing crate for structured logging"
+    detect:
+      anti_patterns:
+        - "println!("
+        - "eprintln!("
+      prefer:
+        - "tracing::info!"
+        - "tracing::error!"
+    note: "Simple examples may use println — flag for larger samples. log::* is sync-only and not appropriate for async Azure SDK code."
+    fix: "Add tracing and tracing-subscriber crates; use tracing::info!()"
+
+  - id: RS-006
+    severity: medium
+    title: Implement proper error types
+    description: "Use thiserror or anyhow for error handling — not String errors"
+    detect:
+      anti_patterns:
+        - regex: "Result<.*,\\s*String>"
+        - regex: "\\.map_err\\(\\|e\\| e\\.to_string\\(\\)\\)"
+      prefer:
+        - "thiserror"
+        - "anyhow"
+        - "azure_core::Error"
+    fix: "Use anyhow::Result for apps or thiserror for libraries"

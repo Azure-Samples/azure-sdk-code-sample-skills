@@ -1,0 +1,88 @@
+# Deprecated/retired Azure SDK packages
+# These packages should trigger DEP-002 findings when found in samples.
+# Source of truth for current packages: MicrosoftDocs/azure-dev-docs-pr/articles/includes/{lang}-all.md
+
+packages:
+  typescript:
+    - name: "@azure/openai"
+      status: retired
+      replacement: "openai (npm) with AzureOpenAI class"
+      retired_date: "2024-10"
+      migration_url: "https://learn.microsoft.com/azure/ai-services/openai/how-to/migration"
+
+    - name: "azure-storage"
+      status: retired
+      replacement: "@azure/storage-blob, @azure/storage-file-share, @azure/storage-queue"
+      retired_date: "2019-11"
+
+    - name: "@azure/cognitiveservices-*"
+      status: retired
+      replacement: "Service-specific @azure/* packages"
+      retired_date: "2023-03"
+
+  python:
+    - name: "azure-storage"
+      status: retired
+      replacement: "azure-storage-blob, azure-storage-file-share, azure-storage-queue"
+      retired_date: "2020-01"
+
+    - name: "azure-cognitiveservices-*"
+      status: retired
+      replacement: "Service-specific azure-ai-* packages"
+      retired_date: "2023-03"
+
+    - name: "openai (with api_type='azure')"
+      status: deprecated_pattern
+      replacement: "openai with AzureOpenAI class (no api_type param)"
+      deprecated_date: "2024-01"
+      detect_pattern: "api_type.*=.*['\"]azure['\"]"
+
+  dotnet:
+    - name: "Microsoft.Azure.Storage.*"
+      status: retired
+      replacement: "Azure.Storage.Blobs, Azure.Storage.Files.Shares, Azure.Storage.Queues"
+      retired_date: "2020-01"
+
+    - name: "Microsoft.Azure.KeyVault"
+      status: retired
+      replacement: "Azure.Security.KeyVault.Secrets, Azure.Security.KeyVault.Keys"
+      retired_date: "2020-06"
+
+    - name: "Microsoft.Azure.ServiceBus"
+      status: retired
+      replacement: "Azure.Messaging.ServiceBus"
+      retired_date: "2021-11"
+
+    - name: "Microsoft.Azure.EventHubs"
+      status: retired
+      replacement: "Azure.Messaging.EventHubs"
+      retired_date: "2021-11"
+
+    - name: "Azure.AI.OpenAI v1.x (OpenAIClient class)"
+      status: deprecated_version
+      replacement: "Azure.AI.OpenAI v2.x with AzureOpenAIClient (wraps OpenAI .NET library)"
+      deprecated_date: "2024-10"
+      migration_url: "https://learn.microsoft.com/azure/ai-services/openai/how-to/migration"
+      detect_pattern: "OpenAIClient|CompletionsOptions|ChatCompletionsOptions"
+      note: "The Azure.AI.OpenAI PACKAGE is NOT retired — v2.x is current. Only v1.x API types are deprecated."
+
+  go:
+    - name: "github.com/Azure/azure-sdk-for-go/services/*"
+      status: retired
+      replacement: "github.com/Azure/azure-sdk-for-go/sdk/* (Track 2)"
+      retired_date: "2023-09"
+
+  java:
+    - name: "com.microsoft.azure:*"
+      status: retired
+      replacement: "com.azure:* (Track 2)"
+      retired_date: "2023-09"
+
+    - name: "com.azure:azure-ai-openai"
+      status: retired
+      replacement: "com.openai:openai-java with Azure configuration"
+      retired_date: "2025-01"
+
+  rust:
+    # Rust Azure SDK is still evolving — no retired packages yet
+    []
